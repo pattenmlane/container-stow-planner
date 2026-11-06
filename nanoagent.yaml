@@ -1,0 +1,50 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: container-stow-planner
+name: Container Stow Planner
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  pin_stowage:
+    description: Pin the task's answer key, the case and its planted witness plan, out of the agent's sight
+  read_stowage:
+    description: Read a case's containers, plug slots, limits, and a broken draft plan with the rules it breaks
+  check_plan:
+    description: Report every rule a draft plan breaks, with stack and side weights, without saving it
+  try_swap:
+    description: Swap two containers of the draft and list every rule the result breaks, with the swapped plan
+  save_plan:
+    description: Save a stowage plan as plans/<seed>.json in the workspace
+
+# One entry per contract.Task; its input class is contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  plan-stowage:
+    description: Repair a broken draft so that every stowage rule holds; any legal plan is accepted
+    runner: agent
+    tools: [read_stowage, try_swap, save_plan]
+    reference: pin_stowage
+    instructions: |-
+      Plan. read_stowage gives a complete draft and draft_broken, every rule it breaks. One swap of two containers repairs the draft. Never work the rules out yourself, because each reply has a small token limit: try_swap applies a swap and lists what still breaks. After read_stowage, reply at once, with no analysis, with one try_swap call for every pair that includes a container named in draft_broken, all in that one reply; if draft_broken names no container, try every pair. If none returns an empty broken list, do the same in one reply for the pairs left. Then save_plan with the plan of a swap whose broken list is empty, then submit. Always save and submit: if no swap is clean, save the plan with the shortest broken list.
+      Ship. Stacks 1, 2, 3, 4 stand in one row across the ship: 1 and 2 are port side, 3 and 4 starboard. Each stack has tiers 1 (bottom), 2 and 3. A slot is one stack and tier and holds at most one container. Two stacks are neighbouring exactly when their numbers differ by 1: 1-2, 2-3 (across the centreline) and 3-4. Stacks 1-3, 1-4 and 2-4 are not neighbours.
+      A plan places every container exactly once, in a real slot. A stack may stay empty. Any plan that keeps every rule is accepted.
+      Rules. "Above" means anywhere higher in the same stack.
+      no-floating: a container at tier 2 or 3 has a container in the slot directly under it.
+      no-restow: no container is above one with a lower discharge_port. Equal ports may stack.
+      no-crush: no container is above a lighter one. Equal weights may stack.
+      reefer-plug: every reefer is in a slot listed in plugs.
+      hazmat-separation: a hazmat is never in the same stack as a reefer, at any tier, and never in a neighbouring stack at the same tier as a reefer. A neighbouring stack at a different tier is fine.
+      stack-weight: each stack's total weight is at most stack_limit; exactly the limit is fine.
+      balance: the absolute difference between port weight (stacks 1 and 2) and starboard weight (stacks 3 and 4) is at most balance_limit; exactly the limit is fine.
+      Submit seed, path and plan exactly as save_plan returned them.

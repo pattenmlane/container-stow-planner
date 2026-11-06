@@ -1,0 +1,12 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Stow a small ship without breaking a single rule"
+summary: "Give it a case number and an agent repairs a broken stowage plan for six containers on a four-stack ship, working around discharge order, weights, reefer plugs, hazmat separation and balance. Any plan that keeps every rule passes, and a rule checker decides from the saved plan."
+highlights:
+  - "Any plan that keeps every rule is accepted, not just one stored answer"
+  - "The agent repairs a plan that really is broken, and simple greedy filling never loads the ship"
+  - "Judged on the saved plan, with every broken rule listed by name"
+steps:
+  - "Ask for a case by number, such as case 7"
+  - "The agent reads the containers and a draft plan that breaks a rule"
+  - "It tries swaps, picks one that fixes the plan and saves it"
+  - "The verdict shows which rules hold"
